@@ -23,6 +23,26 @@ class AlignedDataset_all(BaseDataset):
         Parameters:
             opt (Option class) -- stores all the experiment flags; needs to be a subclass of BaseOptions
         """
+        #         transform_base:
+        #   img_size: 512
+        # transform_flare:
+        #   scale_min: 0.8
+        #   scale_max: 1.5
+        #   translate: 300
+        #   shear: 20
+        self.img_size = 256
+        self.transform_base=transforms.Compose([transforms.RandomCrop((self.img_size,self.img_size),pad_if_needed=True,padding_mode='reflect'),
+							  transforms.RandomHorizontalFlip(),
+							  transforms.RandomVerticalFlip()
+                              ])
+
+        self.transform_flare=transforms.Compose([transforms.RandomAffine(degrees=(0,360),scale=(0.8,1.5),translate=(300/1440,300/1440),shear=(-20,20)),
+									transforms.CenterCrop((self.img_size,self.img_size)),
+									transforms.RandomHorizontalFlip(),
+									transforms.RandomVerticalFlip()
+									])
+        
+        
         BaseDataset.__init__(self, opt)
         self.equalizeHist = equalizeHist
         self.augment_flip = augment_flip
@@ -38,8 +58,8 @@ class AlignedDataset_all(BaseDataset):
         self.dir_Alol = os.path.join(opt.dataroot, 'LOL/' + opt.phase + '/low')
         self.dir_Blol = os.path.join(opt.dataroot, 'LOL/' + opt.phase + '/high')
         self.dir_Aflare = os.path.join(opt.dataroot, 'flare/' + opt.phase + '/scene')
-        self.dir_Bflare = os.path.join(opt.dataroot, 'flare/' + opt.phase + '/flare')
-        
+        self.dir_Bflare = os.path.join(opt.dataroot, 'flare/' + opt.phase + '/Scatter')
+
         if opt.phase == 'train':
             self.dir_Asnow = os.path.join(opt.dataroot, 'Snow100K/' + opt.phase + '/synthetic')
             self.dir_Bsnow = os.path.join(opt.dataroot, 'Snow100K/' + opt.phase + '/gt')
@@ -51,6 +71,8 @@ class AlignedDataset_all(BaseDataset):
             flog_prefix = os.path.join(opt.dataroot, 'RESIDE/OTS_ALPHA/')
             self.dir_Afog = flog_prefix + 'haze/OTS'
             self.dir_Bfog = flog_prefix + 'clear/clear_images'
+            
+            self.dir_Cflare = os.path.join(opt.dataroot, 'flare/' + opt.phase + '/Reflective')
         else:
             self.dir_Asnow = os.path.join(opt.dataroot, 'Snow100K/' + opt.phase + '/Snow100K-S/synthetic') #Snow100K-S Snow100K-L
             self.dir_Bsnow = os.path.join(opt.dataroot, 'Snow100K/' + opt.phase + '/Snow100K-S/gt')
@@ -100,6 +122,8 @@ class AlignedDataset_all(BaseDataset):
         elif task == 'flare':
             self.A_paths = sorted(make_dataset(self.dir_Aflare, opt.max_dataset_size))
             self.B_paths = sorted(make_dataset(self.dir_Bflare, opt.max_dataset_size))
+            if opt.phase == 'train':
+                self.C_paths = sorted(make_dataset(self.dir_Cflare, opt.max_dataset_size))
         else:
             self.A_paths = sorted(make_dataset(self.dir_Aasd, opt.max_dataset_size))
             self.B_paths = sorted(make_dataset(self.dir_Basd, opt.max_dataset_size))
@@ -131,7 +155,7 @@ class AlignedDataset_all(BaseDataset):
             # read a image given a random integer index
             A_path = self.A_paths[index % self.A_size]  # make sure index is within then range
             B_path = self.B_paths[index % self.B_size]
-
+        #TODO,read scene reflective scatter, and use them to generate
         condition = Image.open(A_path).convert('RGB') #condition
         gt = Image.open(B_path).convert('RGB') #gt
 
