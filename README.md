@@ -42,6 +42,12 @@ pip install scikit-image
 pip install tensorboard
 pip install matplotlib 
 pip install tqdm
+pip install Augmentor
+pip install accelerate
+pip install einops
+pip install ema_pytorch
+pip install thop
+
 ```
 
 ## Dataset Preparation

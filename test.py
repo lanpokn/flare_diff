@@ -1,24 +1,36 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import sys
 import argparse
 from data import create_dataset
 from data.universal_dataset import AlignedDataset_all
 from src.model import (ResidualDiffusion,Trainer, Unet, UnetRes,set_seed)
+# def parsr_args():
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("--dataroot", type=str, default='/mnt/Datasets/Restoration')
+#     parser.add_argument("--phase", type=str, default='test')
+#     parser.add_argument("--max_dataset_size", type=int, default=float("inf"))
+#     parser.add_argument('--load_size', type=int, default=256, help='scale images to this size') #568
+#     parser.add_argument('--crop_size', type=int, default=256, help='then crop to this size')
+#     parser.add_argument('--direction', type=str, default='AtoB', help='AtoB or BtoA')
+#     parser.add_argument('--preprocess', type=str, default='none', help='scaling and cropping of images at load time [resize_and_crop | crop | scale_width | scale_width_and_crop | none]')
+#     parser.add_argument('--no_flip', type=bool, default=True, help='if specified, do not flip the images for data augmentation')
+#     parser.add_argument("--bsize", type=int, default=2)
+#     opt = parser.parse_args()
+#     return opt
 def parsr_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataroot", type=str, default='/mnt/Datasets/Restoration')
+    parser.add_argument("--dataroot", type=str, default='Datasets')
     parser.add_argument("--phase", type=str, default='test')
     parser.add_argument("--max_dataset_size", type=int, default=float("inf"))
-    parser.add_argument('--load_size', type=int, default=256, help='scale images to this size') #568
-    parser.add_argument('--crop_size', type=int, default=256, help='then crop to this size')
+    parser.add_argument('--load_size', type=int, default=512, help='scale images to this size') #568
+    parser.add_argument('--crop_size', type=int, default=512, help='then crop to this size')
     parser.add_argument('--direction', type=str, default='AtoB', help='AtoB or BtoA')
     parser.add_argument('--preprocess', type=str, default='none', help='scaling and cropping of images at load time [resize_and_crop | crop | scale_width | scale_width_and_crop | none]')
     parser.add_argument('--no_flip', type=bool, default=True, help='if specified, do not flip the images for data augmentation')
     parser.add_argument("--bsize", type=int, default=2)
     opt = parser.parse_args()
     return opt
-
 sys.stdout.flush()
 set_seed(10)
 
@@ -40,7 +52,7 @@ opt = parsr_args()
 
 results_folder = "./ckpt_universal/diffuir"
 
-dataset = AlignedDataset_all(opt, image_size, augment_flip=False, equalizeHist=True, crop_patch=False, generation=False, task='fog')
+dataset = AlignedDataset_all(opt, image_size, augment_flip=False, equalizeHist=True, crop_patch=False, generation=False, task='flare')
 num_unet = 1
 objective = 'pred_res'
 test_res_or_noise = "res"
@@ -93,6 +105,6 @@ trainer = Trainer(
 if not trainer.accelerator.is_local_main_process:
     pass
 else:
-    trainer.load(300)
+    trainer.load(110)
     trainer.set_results_folder('./result')
     trainer.test(last=True)

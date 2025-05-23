@@ -30,6 +30,8 @@ from thop import profile
 import copy
 import importlib
 
+import re
+
 ModelResPrediction = namedtuple(
     'ModelResPrediction', ['pred_res', 'pred_noise', 'pred_x_start'])
 # helpers functions
@@ -1206,11 +1208,12 @@ class Trainer(object):
 
         if self.condition:
             if opts.phase == "train":
-                self.dl_fog = cycle(self.accelerator.prepare(DataLoader(dataset[0], batch_size=4, shuffle=True, pin_memory=True, num_workers=4)))
-                self.dl_light = cycle(self.accelerator.prepare(DataLoader(dataset[1], batch_size=1, shuffle=True, pin_memory=True, num_workers=2)))
-                self.dl_rain = cycle(self.accelerator.prepare(DataLoader(dataset[2], batch_size=2, shuffle=True, pin_memory=True, num_workers=2)))
-                self.dl_snow = cycle(self.accelerator.prepare(DataLoader(dataset[3], batch_size=2, shuffle=True, pin_memory=True, num_workers=2)))
-                self.dl_blur = cycle(self.accelerator.prepare(DataLoader(dataset[4], batch_size=1, shuffle=True, pin_memory=True, num_workers=2)))
+                # self.dl_fog = cycle(self.accelerator.prepare(DataLoader(dataset[0], batch_size=4, shuffle=True, pin_memory=True, num_workers=4)))
+                # self.dl_light = cycle(self.accelerator.prepare(DataLoader(dataset[1], batch_size=1, shuffle=True, pin_memory=True, num_workers=2)))
+                # self.dl_rain = cycle(self.accelerator.prepare(DataLoader(dataset[2], batch_size=2, shuffle=True, pin_memory=True, num_workers=2)))
+                # self.dl_snow = cycle(self.accelerator.prepare(DataLoader(dataset[3], batch_size=2, shuffle=True, pin_memory=True, num_workers=2)))
+                # self.dl_blur = cycle(self.accelerator.prepare(DataLoader(dataset[4], batch_size=1, shuffle=True, pin_memory=True, num_workers=2)))
+                self.dl_flare = cycle(self.accelerator.prepare(DataLoader(dataset, batch_size=1, shuffle=True, pin_memory=True, num_workers=2)))
             else:
                 self.sample_dataset = dataset
                 
@@ -1276,18 +1279,18 @@ class Trainer(object):
                 
                 for _ in range(self.gradient_accumulate_every):
                     if self.condition:
-                        batch1 = next(self.dl_fog)
-                        batch2 = next(self.dl_light)
-                        batch3 = next(self.dl_rain)
-                        batch4 = next(self.dl_snow)
-                        batch5 = next(self.dl_blur)
-                       
+                        # batch1 = next(self.dl_fog)
+                        # batch2 = next(self.dl_light)
+                        # batch3 = next(self.dl_rain)
+                        # batch4 = next(self.dl_snow)
+                        # batch5 = next(self.dl_blur)
+                        batch6 = next(self.dl_flare)
                         data = {}
-                        for k, v in batch1.items():
+                        for k, v in batch6.items():
                             if 'path' in k:
-                                data[k] = batch1[k] + batch2[k] + batch3[k] + batch4[k] + batch5[k]
+                                data[k] = batch6[k]
                             else:
-                                data[k] = torch.cat([batch1[k], batch2[k], batch3[k], batch4[k], batch5[k]], dim=0)
+                                data[k] = batch6[k]
                         #TODO, seem like no need to correct here
                         gt = data["gt"].to(self.device)
                         cond_input = data["adap"].to(self.device)
@@ -1361,7 +1364,9 @@ class Trainer(object):
             for items in loader:
                 if self.condition:
                     file_ = items["A_paths"][0]
-                    file_name = file_.split('/')[-4]
+                    # file_name = file_.split('/')[-4]
+                    file_name = re.split(r'[/\\]', file_)[-4]
+
                 else:
                     file_name = f'{i}.png'
 
@@ -1387,7 +1392,7 @@ class Trainer(object):
                     nrow = all_images.shape[0]
                 save_path = str(self.results_folder / file_name)
                 os.makedirs(save_path, exist_ok=True)
-                full_path = os.path.join(save_path, file_.split('/')[-1]).replace('_fake_B','')
+                full_path = os.path.join(save_path, re.split(r'[/\\]', file_)[-1]).replace('_fake_B','')
                 utils.save_image(all_images, full_path, nrow=nrow)
                 print("test-save "+full_path)
                 
